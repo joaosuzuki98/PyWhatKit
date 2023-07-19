@@ -42,3 +42,9 @@ class UnableToAccessApi(Exception):
     """unable to access pywhatkit api"""
 
     pass
+
+
+class DifferentPhoneAndMessageListLength(Exception):
+    """Phone number list and message list must have the same length"""
+
+    pass
