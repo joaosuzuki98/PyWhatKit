@@ -10,7 +10,7 @@ import pyautogui as pg
 import pyperclip
 import keyboard
 from pywhatkit.core import core, exceptions, log
-from typing import Union
+from typing import Union, List
 
 pg.FAILSAFE = False
 
@@ -42,6 +42,81 @@ def sendwhatmsg_instantly(
     log.log_message(_time=time.localtime(), receiver=phone_no, message=message)
     if tab_close:
         core.close_tab(wait_time=close_time)
+
+
+def whatmsg_sendmany(
+        phone_nos: List[str],
+        messages: List[str],
+        wait_time: int = 15,
+        tab_close: bool = True,
+        close_time: int = 2,
+        instantly: bool = True,
+        time_hour: int = 15,
+        time_min: int = 30,
+) -> None:
+    """Send a Different Message For Different Phone Numbers"""
+    if len(phone_nos) != len(messages):
+        raise exceptions.DifferentPhoneAndMessageListLength("Phone Number List and Message List Length Are Not Equal")
+    
+    if instantly:
+        for phone, message in zip(phone_nos, messages):
+            if not core.check_number(number=phone):
+                raise exceptions.CountryCodeException("Country Code Missing in Phone Number!")
+
+            phone = phone.replace(" ", "")
+            if not fullmatch(r"^\+?[0-9]{2,4}\s?[0-9]{9,15}", phone):
+                raise exceptions.InvalidPhoneNumber("Invalid Phone Number.")
+            
+            web.open(f"https://web.whatsapp.com/send?phone={phone}&text={quote(message)}")
+            time.sleep(4)
+            pg.click(core.WIDTH / 2, core.HEIGHT / 2 + 15)
+            time.sleep(wait_time - 4)
+            core.findtextbox()
+            pg.press("enter")
+            log.log_message(_time=time.localtime(), receiver=phone, message=message)
+
+            if tab_close:
+                core.close_tab(wait_time=close_time)
+            
+            time.sleep(1.5)
+    else:
+        for phone, message in zip(phone_nos, messages):
+            if not core.check_number(number=phone):
+                raise exceptions.CountryCodeException("Country Code Missing in Phone Number!")
+
+            phone = phone.replace(" ", "")
+            if not fullmatch(r'^\+?[0-9]{2,4}\s?[0-9]{9,15}', phone):
+                raise exceptions.InvalidPhoneNumber("Invalid Phone Number.")
+
+            if time_hour not in range(25) or time_min not in range(60):
+                raise Warning("Invalid Time Format!")
+
+            current_time = time.localtime()
+            left_time = datetime.strptime(
+                f"{time_hour}:{time_min}:0", "%H:%M:%S"
+            ) - datetime.strptime(
+                f"{current_time.tm_hour}:{current_time.tm_min}:{current_time.tm_sec}",
+                "%H:%M:%S",
+            )    
+
+            if left_time.seconds < wait_time:
+                raise exceptions.CallTimeException(
+                    "Call Time must be Greater than Wait Time as WhatsApp Web takes some Time to Load!"
+                )
+            
+            sleep_time = left_time.seconds - wait_time
+            print(
+                f"In {sleep_time} Seconds WhatsApp will open and after {wait_time} Seconds Message will be Delivered!"
+            )
+
+            time.sleep(sleep_time)
+            core.send_message(message=message, receiver=phone, wait_time=wait_time)
+            log.log_message(_time=current_time, receiver=phone, message=message)
+
+            if tab_close:
+                core.close_tab(wait_time=close_time)
+            
+            time.sleep(1.5)
 
 
 def sendimg_or_video_immediately(
